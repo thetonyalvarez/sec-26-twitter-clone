@@ -65,6 +65,9 @@ def signup():
     and re-present form.
     """
 
+    # import pdb
+    # pdb.set_trace()
+
     form = UserAddForm()
 
     if form.validate_on_submit():
@@ -114,10 +117,16 @@ def logout():
     """Handle logout of user."""
 
     # IMPLEMENT THIS
+    do_logout()
+
+    flash("You have been logged out.", 'danger')
+
+    return redirect("/")
 
 
 ##############################################################################
 # General user routes:
+
 
 @app.route('/users')
 def list_users():
