@@ -1,0 +1,8 @@
+.vscode/
+node_modules/
+__pycache__/
+*/__pycache__/
+solution/
+instructions.md
+.DS_Store
+venv/
