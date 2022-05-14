@@ -112,3 +112,160 @@ class UserViewTestCase(TestCase):
 
             self.assertNotIn("danger", html)
             self.assertIn("New to Warbler?", html)
+
+    def test_filled_user_bio_on_profile(self):
+        """
+        Test that a user bio is visible on the profile.
+        """
+                        
+        # add text in the bio field
+        self.testuser.bio = "testing the bio"
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}")
+            html = resp.get_data(as_text=True)
+            
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.testuser.bio, html)
+
+    def test_empty_user_bio_shows_fallback(self):
+        """
+        Test that an empty bio shows the fallback text.
+        """
+                        
+        # this string is what should appear on the front end
+        fallback_text = "No bio yet."
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(fallback_text, html)
+            self.assertEqual(self.testuser.bio, None)
+
+    def test_filled_user_location_on_profile(self):
+        """
+        Test that a user location is visible on the profile.
+        """
+                        
+        # add text in the bio field
+        self.testuser.location = "Los Angeles"
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.testuser.location, html)
+
+    def test_empty_user_location_shows_fallback(self):
+        """
+        Test that an empty user location shows the fallback text.
+        """
+                        
+        # this string is what should appear on the front end
+        fallback_text = "The World"
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(fallback_text, html)
+            self.assertEqual(self.testuser.location, None)
+
+    def test_filled_user_header_image_on_profile(self):
+        """
+        Test that a user header image is visible on the profile.
+        """
+                        
+        # add text in the bio field
+        self.testuser.header_image_url = "/test_header_image_string.png"
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.testuser.header_image_url, html)
+
+    def test_empty_user_header_image_shows_fallback(self):
+        """
+        Test that an empty user location shows the fallback text.
+        """
+                        
+        # this string is the default fallback set by models.pg
+        fallback_text = "/static/images/warbler-hero.jpg"
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(fallback_text, html)
+
+
