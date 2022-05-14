@@ -120,7 +120,8 @@ def logout():
     do_logout()
 
     # flash the user to confirm that they have been logged out
-    flash("You have been logged out.", 'danger')
+    if g.user:
+        flash("You have been logged out.", 'danger')
 
     # redirect them back to index page
     return redirect("/")
