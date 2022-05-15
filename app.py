@@ -342,14 +342,18 @@ def homepage():
     """
 
     if g.user:
-        # following = [f.id for f in g.user.following]
+        # create a list of all ids that our user follows
+        following = [f.id for f in g.user.following]
+        # append our user's id as well into this list
+        following.append(g.user.id)
+        # query all messages that match the ids in our following list
         messages = (Message
                     .query
-                    # .filter((g.user.following.all()))
+                    .filter(Message.user_id.in_(following))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-
+        
         return render_template('home.html', messages=messages)
 
     else:
