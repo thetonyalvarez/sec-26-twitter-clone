@@ -230,11 +230,11 @@ def profile():
 
     user = User.query.get_or_404(g.user.id)
     
-    form = UserEditForm(obj=user)
+    form = UserEditForm()
     
     if form.validate_on_submit():
         # query the current logged in user
-
+        
         # authentice the user
         valid_user = User.authenticate(user.username, form.password.data)
 
@@ -342,12 +342,18 @@ def homepage():
     """
 
     if g.user:
+        # create a list of all ids that our user follows
+        following = [f.id for f in g.user.following]
+        # append our user's id as well into this list
+        following.append(g.user.id)
+        # query all messages that match the ids in our following list
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(following))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-
+        
         return render_template('home.html', messages=messages)
 
     else:

@@ -280,7 +280,7 @@ class UserViewTestCase(TestCase):
 
     def test_followers_on_followers_page(self):
         """
-        Test that a follower appears on the a user's follower's page.
+        Test that a follower appears on the user's follower's page.
         """
 
         # Since we need to change the session to mimic logging in,
@@ -456,7 +456,6 @@ class UserViewTestCase(TestCase):
 
             self.assertIn("New to Warbler", html)
 
-    # ! This works on front end, but test is not working!
     def test_update_profile_redirect_to_user_details_page_on_validation(self):
         """
         Show user details page on password validation.
@@ -470,19 +469,17 @@ class UserViewTestCase(TestCase):
                 sess[CURR_USER_KEY] = self.testuser.id
 
             curr_user = User.query.get(sess[CURR_USER_KEY])
-
+            
+            # the password needs to be passed in the data as the literal string, not hashed.
             resp = c.post("/users/profile", 
-                          data={
-                            'username': self.testuser.username,
+                          json={
+                            'username': "testuser_edit",
                             'email': self.testuser.email,
                             'image_url': self.testuser.image_url,
                             'header_image_url': self.testuser.header_image_url,
                             'bio': self.testuser.bio,
-                            'password': curr_user.password
+                            'password': "testuser"
                 }, follow_redirects=True)
-            
-            import pdb
-            pdb.set_trace()
             
             html = resp.get_data(as_text=True)
 
@@ -490,3 +487,137 @@ class UserViewTestCase(TestCase):
             self.assertEqual(resp.status_code, 200)
 
             self.assertIn("testuser_edit", html)
+
+    def test_update_profile_redirect_to_home_on_invalid_password(self):
+        """
+        Show user details page on password validation.
+        """
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # the password needs to be passed in the data as the literal string, not hash, for User auth to work.
+            resp = c.post("/users/profile", 
+                          json={
+                            'username': "testuser_edit",
+                            'email': self.testuser.email,
+                            'image_url': self.testuser.image_url,
+                            'header_image_url': self.testuser.header_image_url,
+                            'bio': self.testuser.bio,
+                            'password': "incorrectpassword"
+                }, follow_redirects=True)
+            
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            # check for flashed 'Incorrect password' message
+            self.assertIn("Incorrect password", html)
+
+    def test_show_messages_from_users_that_curr_users_follows(self):
+        """
+        Show only messages from users that the user follows, plus curr user's messages.
+        """
+        
+        # create a test message for our curr user, the user they follow, and a follower
+        following_test_message = Message(
+            text = "testing a new message from a person we follow"
+        )
+        follower_test_message = Message(
+            text = "testing a new message from a person that follows curr user. this should not appear."
+        )
+        curr_test_message = Message(
+            text = "testing our curr users new message"
+        )
+        
+        # append the messages to each user
+        self.followinguser.messages.append(following_test_message)
+        self.followeruser.messages.append(follower_test_message)
+        self.testuser.messages.append(curr_test_message)
+
+        # Add the followinguser to the testuser's list of followers
+        # just so that we can attach this User object to session
+        self.testuser.following.append(self.followinguser)
+        self.followeruser.following.append(self.testuser)
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            # We have to query the users due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+
+            resp = c.get('/')
+
+            html = resp.get_data(as_text=True)
+
+            self.assertIn(curr_user.following[0].messages[0].text, html)
+            self.assertIn(curr_user.messages[0].text, html)
+
+            # make sure we don't see follower's messages in our curr user feed
+            # since we don't follow them
+            self.assertNotIn(curr_user.followers[0].messages[0].text, html)
+
+    def test_show_signup_screen_for_anon_users(self):
+        """
+        Show signup screen when anon user visits "/".
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            
+            resp = c.get('/')
+
+            html = resp.get_data(as_text=True)
+
+            # make sure we don't see follower's messages in our curr user feed
+            # since we don't follow them
+            self.assertIn("New to Warbler?", html)
+
+    def test_show_100_messages_max_for_curr_user(self):
+        """
+        Show only 100 messages max for a curr user.
+        """
+        
+        i = 0
+
+        while (i < 200):
+            i += 1
+            test_message = Message(
+                text = f'message number {i}'
+            )
+            self.testuser.messages.append(test_message)
+        
+        db.session.commit()
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            # We have to query the users due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+
+            resp = c.get('/')
+
+            html = resp.get_data(as_text=True)
+
+            self.assertIn(curr_user.messages[0].text, html)
+            self.assertIn(curr_user.messages[50].text, html)
+            self.assertNotIn(curr_user.messages[150].text, html)
+            self.assertNotIn(curr_user.messages[199].text, html)
