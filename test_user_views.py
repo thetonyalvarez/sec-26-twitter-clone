@@ -394,3 +394,99 @@ class UserViewTestCase(TestCase):
 
             self.assertIn(self.followinguser.bio, html)
 
+    def test_show_update_profile_page_for_curr_user_only(self):
+        """
+        Ensure that only the logged-in user can edit their own profile.
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # We have to query the user due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # Add the followinguser to the testuser's list of followers
+            # just so that we can attach this User object to session
+            curr_user.following.append(self.followinguser)
+            db.session.commit()
+                
+            resp = c.get("/users/profile")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.testuser.username, html)
+            self.assertNotIn(self.followinguser.username, html)
+
+    def test_show_update_profile_page_redirect_for_anon_users(self):
+        """
+        Ensure that only the logged-in user can edit their own profile.
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+                
+            resp = c.get("/users/profile")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it sends a 302 redirect code
+            self.assertEqual(resp.status_code, 302)
+
+            self.assertIn("<a href=\"/\"", html)
+
+    def test_show_update_profile_page_redirect_for_anon_users_followed(self):
+        """
+        Ensure that only the logged-in user can edit their own profile.
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+                
+            resp = c.get("/users/profile", follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn("New to Warbler", html)
+
+    # ! This works on front end, but test is not working!
+    def test_update_profile_redirect_to_user_details_page_on_validation(self):
+        """
+        Show user details page on password validation.
+        """
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+
+            resp = c.post("/users/profile", 
+                          data={
+                            'username': self.testuser.username,
+                            'email': self.testuser.email,
+                            'image_url': self.testuser.image_url,
+                            'header_image_url': self.testuser.header_image_url,
+                            'bio': self.testuser.bio,
+                            'password': curr_user.password
+                }, follow_redirects=True)
+            
+            import pdb
+            pdb.set_trace()
+            
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn("testuser_edit", html)
