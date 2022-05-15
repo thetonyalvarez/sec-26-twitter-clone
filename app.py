@@ -309,23 +309,33 @@ def messages_add():
 @app.route('/messages/<int:message_id>', methods=["GET"])
 def messages_show(message_id):
     """Show a message."""
-
+    
     msg = Message.query.get(message_id)
-    return render_template('messages/show.html', message=msg)
 
-
-@app.route('/messages/<int:message_id>/delete', methods=["POST"])
-def messages_destroy(message_id):
-    """Delete a message."""
-
-    if not g.user:
+    if msg:
+        return render_template('messages/show.html', message=msg)
+    else:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    msg = Message.query.get(message_id)
-    db.session.delete(msg)
-    db.session.commit()
 
+@app.route('/messages/<int:message_id>/delete', methods=["GET", "POST"])
+def messages_destroy(message_id):
+    """Delete a message only if it belongs to the user."""
+
+    if not g.user or request.method == 'GET':
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    
+    msg = Message.query.get(message_id)
+    
+    if msg.user_id == g.user.id:
+        db.session.delete(msg)
+        db.session.commit()
+        
+    else:
+        flash("Access unauthorized.", "danger")        
+    
     return redirect(f"/users/{g.user.id}")
 
 
