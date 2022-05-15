@@ -229,7 +229,39 @@ def profile():
         return redirect("/")
 
     user = User.query.get_or_404(g.user.id)
-    return render_template('users/edit.html', user=user)
+    
+    form = UserEditForm(obj=user)
+    
+    if form.validate_on_submit():
+        # query the current logged in user
+
+        # authentice the user
+        valid_user = User.authenticate(user.username, form.password.data)
+
+        # if the password is valid, commit the changes
+        # to the database and redirect to the user's page
+
+        if valid_user:
+            user.username = form.username.data
+            user.email = form.email.data
+            if form.image_url.data:
+                user.image_url = form.image_url.data
+            if form.header_image_url.data:
+                user.header_image_url = form.header_image_url.data
+            user.bio = form.bio.data
+
+            db.session.commit()
+            return redirect(f"/users/{g.user.id}")
+        
+        # if not, de-commit the changes and 
+        # redirect to home
+        else:
+            db.session.rollback()
+            flash("Incorrect password", "danger")
+            return redirect("/")
+
+    else:
+        return render_template('users/edit.html', user=user, form=form)
 
 
 @app.route('/users/delete', methods=["POST"])
