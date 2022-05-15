@@ -123,6 +123,27 @@ class UserViewTestCase(TestCase):
             self.assertNotIn("danger", html)
             self.assertIn("New to Warbler?", html)
 
+    def test_single_user_page_view(self):
+        """
+        Show a single user by id.
+        User does NOT have to be logged in to view single user.
+        """
+        
+        testuser = self.testuser.id
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+
+            resp = c.get(f'/users/{testuser}')
+            
+            html = resp.get_data(as_text=True)
+
+            self.assertIn("testuser", html)
+            self.assertNotIn("followinguser", html)
+            self.assertNotIn("New to Warbler", html)
+
     def test_filled_user_bio_on_profile(self):
         """
         Test that a user bio is visible on the profile.
@@ -394,6 +415,111 @@ class UserViewTestCase(TestCase):
 
             self.assertIn(self.followinguser.bio, html)
 
+    def test_follow_a_user(self):
+        """
+        Test that curr user can follow another user.
+        Test that curr user cannot follow an invalid user id.
+        """
+        
+        following_user = self.followinguser.id
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            resp = c.post(f'/users/follow/{following_user}', follow_redirects=True)
+            
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("testuser", html)
+            self.assertIn("followinguser", html)
+            self.assertNotIn("followeruser", html)
+            
+            # Test that a non-existest user_id redirects to 404
+            resp = c.post('/users/follow/99999', follow_redirects=True)
+            
+            html = resp.get_data(as_text=True)
+            
+            self.assertEqual(resp.status_code, 404)
+
+    def test_anon_user_cannot_follow_a_user(self):
+        """
+        Test that anon user cannot follow another user.
+        Instead, redirect them  to "/" and flash unauthorized message.
+        """
+        
+        following_user = self.followinguser.id
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            # Test invalid post request
+            resp = c.post(f'/users/follow/{following_user}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            # check for the "danger" flash message in the response.
+            self.assertIn("danger", html)
+            self.assertNotIn("followeruser", html)
+            
+            # Test invalid get request
+            resp = c.get(f'/users/follow/{following_user}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            # check for the "danger" flash message in the response.
+            self.assertIn("danger", html)
+            self.assertNotIn("followeruser", html)
+            
+            # Test that a non-existest user_id POST request redirects to 404
+            resp = c.post('/users/follow/99999', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertEqual(resp.status_code, 404)
+
+            # Test that a non-existest user_id GET request redirects to 404
+            resp = c.get('/users/follow/99999', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertEqual(resp.status_code, 200)
+
+    def test_unfollow_a_user(self):
+        """
+        Test that curr user can un-follow another user.
+        Test that curr user cannot un-follow an invalid user id.
+        """
+        
+        following_user = self.followinguser
+        self.testuser.following.append(following_user)
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            resp = c.post(f'/users/stop-following/{curr_user.following[0].id}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("testuser", html)
+            self.assertNotIn("followinguser", html)
+            self.assertNotIn("followeruser", html)
+            
+            # Test that a non-existest user_id redirects to 404
+            resp = c.post('/users/stop-following/99999', follow_redirects=True)
+            
+            html = resp.get_data(as_text=True)
+            
+            self.assertEqual(resp.status_code, 404)
+
     def test_show_update_profile_page_for_curr_user_only(self):
         """
         Ensure that only the logged-in user can edit their own profile.
@@ -621,3 +747,56 @@ class UserViewTestCase(TestCase):
             self.assertIn(curr_user.messages[50].text, html)
             self.assertNotIn(curr_user.messages[150].text, html)
             self.assertNotIn(curr_user.messages[199].text, html)
+
+    def test_delete_user(self):
+        """
+        Test that a user can be deleted successfully.
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+                
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            resp = c.post(f'/users/delete', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            # query the curr_user session. This should return None 
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # redirect to signup page
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Join Warbler", html)
+            self.assertEqual(curr_user, None)
+
+    def test_anon_user_cannot_delete_user(self):
+        """
+        Test that an anon user cannot delete a user
+        and instead redirect them to "/"
+        and flash them unauthorized message.
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            
+            # Test invalid post request
+            resp = c.post('/users/delete', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            # check for the "danger" flash message in the response.
+            self.assertIn("danger", html)
+            self.assertNotIn("testuser", html)
+            self.assertNotIn("followeruser", html)
+            
+            # Test invalid get request
+            resp = c.get('/users/delete', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            # check for the "danger" flash message in the response.
+            self.assertIn("danger", html)
+            self.assertNotIn("testuser", html)
+            self.assertNotIn("followeruser", html)
