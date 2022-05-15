@@ -186,6 +186,7 @@ def users_followers(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
+    
     return render_template('users/followers.html', user=user)
 
 

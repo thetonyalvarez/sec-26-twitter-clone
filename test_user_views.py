@@ -37,12 +37,22 @@ class UserViewTestCase(TestCase):
         """Create test client, add sample data."""
 
         User.query.delete()
-
+        
         self.client = app.test_client()
 
         self.testuser = User.signup(username="testuser",
                                     email="test@test.com",
                                     password="testuser",
+                                    image_url=None)
+        # A user that follows our test user
+        self.followeruser = User.signup(username="followeruser",
+                                    email="follower@test.com",
+                                    password="followeruser",
+                                    image_url=None)
+        # A user that our test user is following
+        self.followinguser = User.signup(username="followinguser",
+                                    email="following@test.com",
+                                    password="followinguser",
                                     image_url=None)
 
         db.session.commit()
@@ -268,4 +278,119 @@ class UserViewTestCase(TestCase):
 
             self.assertIn(fallback_text, html)
 
+    def test_followers_on_followers_page(self):
+        """
+        Test that a follower appears on the a user's follower's page.
+        """
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+            
+            # We have to query the user due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # Add the followeruser to the testuser's list of followers
+            curr_user.followers.append(self.followeruser)
+            db.session.commit()
+
+            resp = c.get(f"/users/{self.testuser.id}/followers")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.followeruser.username, html)
+
+    def test_bios_on_follower_cards(self):
+        """
+        Test that bio appear on user bio cards on a user's /followers page.
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            # We have to query the user due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # Add the followeruser to the testuser's list of followers
+            self.followeruser.bio = "our follower bio"
+            curr_user.followers.append(self.followeruser)
+            db.session.commit()
+
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}/followers")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.followeruser.bio, html)
+
+    def test_following_on_following_page(self):
+        """
+        Test that a follower appears on the a user's following page.
+        """
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+            
+            # We have to query the user due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # Add the followinguser to the testuser's list of followers
+            curr_user.following.append(self.followinguser)
+            db.session.commit()
+
+            resp = c.get(f"/users/{self.testuser.id}/following")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.followinguser.username, html)
+
+    def test_bios_on_following_cards(self):
+        """
+        Test that bio appear on user bio cards on a user's /following page.
+        """
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            # We have to query the user due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # Add the followinguser to the testuser's list of followers
+            self.followinguser.bio = "our following bio"
+            curr_user.following.append(self.followinguser)
+            db.session.commit()
+
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+
+            resp = c.get(f"/users/{self.testuser.id}/following")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.followinguser.bio, html)
 
