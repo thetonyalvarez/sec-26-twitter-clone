@@ -456,7 +456,6 @@ class UserViewTestCase(TestCase):
 
             self.assertIn("New to Warbler", html)
 
-    # ! This works on front end, but test is not working!
     def test_update_profile_redirect_to_user_details_page_on_validation(self):
         """
         Show user details page on password validation.
@@ -470,19 +469,17 @@ class UserViewTestCase(TestCase):
                 sess[CURR_USER_KEY] = self.testuser.id
 
             curr_user = User.query.get(sess[CURR_USER_KEY])
-
+            
+            # the password needs to be passed in the data as the literal string, not hashed.
             resp = c.post("/users/profile", 
-                          data={
-                            'username': self.testuser.username,
+                          json={
+                            'username': "testuser_edit",
                             'email': self.testuser.email,
                             'image_url': self.testuser.image_url,
                             'header_image_url': self.testuser.header_image_url,
                             'bio': self.testuser.bio,
-                            'password': curr_user.password
+                            'password': "testuser"
                 }, follow_redirects=True)
-            
-            import pdb
-            pdb.set_trace()
             
             html = resp.get_data(as_text=True)
 
@@ -490,3 +487,36 @@ class UserViewTestCase(TestCase):
             self.assertEqual(resp.status_code, 200)
 
             self.assertIn("testuser_edit", html)
+
+    def test_update_profile_redirect_to_home_on_invalid_password(self):
+        """
+        Show user details page on password validation.
+        """
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # the password needs to be passed in the data as the literal string, not hash, for User auth to work.
+            resp = c.post("/users/profile", 
+                          json={
+                            'username': "testuser_edit",
+                            'email': self.testuser.email,
+                            'image_url': self.testuser.image_url,
+                            'header_image_url': self.testuser.header_image_url,
+                            'bio': self.testuser.bio,
+                            'password': "incorrectpassword"
+                }, follow_redirects=True)
+            
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            # check for flashed 'Incorrect password' message
+            self.assertIn("Incorrect password", html)

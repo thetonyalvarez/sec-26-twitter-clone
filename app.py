@@ -230,11 +230,11 @@ def profile():
 
     user = User.query.get_or_404(g.user.id)
     
-    form = UserEditForm(obj=user)
+    form = UserEditForm()
     
     if form.validate_on_submit():
         # query the current logged in user
-
+        
         # authentice the user
         valid_user = User.authenticate(user.username, form.password.data)
 
@@ -342,8 +342,10 @@ def homepage():
     """
 
     if g.user:
+        # following = [f.id for f in g.user.following]
         messages = (Message
                     .query
+                    # .filter((g.user.following.all()))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
