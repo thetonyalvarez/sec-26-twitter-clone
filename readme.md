@@ -12,3 +12,4 @@ Create an account, add a user, edit profile, follow people, and more.
 -   implement coverage testing:
     -   https://www.rithmschool.com/courses/intermediate-flask/testing-flask-json-apis
     -   https://coverage.readthedocs.io/en/6.3.3/
+-   implement pip nose for unittests

@@ -190,11 +190,11 @@ def users_followers(user_id):
     return render_template('users/followers.html', user=user)
 
 
-@app.route('/users/follow/<int:follow_id>', methods=['POST'])
+@app.route('/users/follow/<int:follow_id>', methods=['GET','POST'])
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
-
-    if not g.user:
+    
+    if not g.user or request.method == 'GET':
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
@@ -213,7 +213,7 @@ def stop_following(follow_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    followed_user = User.query.get(follow_id)
+    followed_user = User.query.get_or_404(follow_id)
     g.user.following.remove(followed_user)
     db.session.commit()
 
@@ -264,11 +264,11 @@ def profile():
         return render_template('users/edit.html', user=user, form=form)
 
 
-@app.route('/users/delete', methods=["POST"])
+@app.route('/users/delete', methods=["GET","POST"])
 def delete_user():
     """Delete user."""
 
-    if not g.user:
+    if not g.user or request.method == 'GET':
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
