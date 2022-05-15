@@ -336,10 +336,37 @@ class UserViewTestCase(TestCase):
 
             self.assertIn(self.followeruser.bio, html)
 
-    def test_bios_on_follower_cards_if_no_bio(self):
+    def test_following_on_following_page(self):
         """
-        Test that fallback bio appears on user bio cards
-        on a user's /followers page if no bio exists for that follower.
+        Test that a follower appears on the a user's following page.
+        """
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            # Now, that session setting is saved, so we can have
+            # the rest of ours test
+            
+            # We have to query the user due to a restriction of Session's lazy load operation
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            # Add the followinguser to the testuser's list of followers
+            curr_user.following.append(self.followinguser)
+            db.session.commit()
+
+            resp = c.get(f"/users/{self.testuser.id}/following")
+            html = resp.get_data(as_text=True)
+
+            # Make sure it redirects
+            self.assertEqual(resp.status_code, 200)
+
+            self.assertIn(self.followinguser.username, html)
+
+    def test_bios_on_following_cards(self):
+        """
+        Test that bio appear on user bio cards on a user's /following page.
         """
         
         # Since we need to change the session to mimic logging in,
@@ -351,20 +378,19 @@ class UserViewTestCase(TestCase):
             # We have to query the user due to a restriction of Session's lazy load operation
             curr_user = User.query.get(sess[CURR_USER_KEY])
             
-            # Add the followeruser to the testuser's list of followers
-            curr_user.followers.append(self.followeruser)
+            # Add the followinguser to the testuser's list of followers
+            self.followinguser.bio = "our following bio"
+            curr_user.following.append(self.followinguser)
             db.session.commit()
 
             # Now, that session setting is saved, so we can have
             # the rest of ours test
 
-            resp = c.get(f"/users/{self.testuser.id}/followers")
+            resp = c.get(f"/users/{self.testuser.id}/following")
             html = resp.get_data(as_text=True)
 
             # Make sure it redirects
             self.assertEqual(resp.status_code, 200)
 
-            self.assertEqual(self.followeruser.bio, None)
-
-
+            self.assertIn(self.followinguser.bio, html)
 
