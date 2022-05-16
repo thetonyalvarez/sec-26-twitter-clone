@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -162,7 +162,12 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    return render_template('users/show.html', user=user, messages=messages)
+    likes = (
+        Likes
+        .query
+        .filter(Likes.user_id == user_id)
+        .all())
+    return render_template('users/show.html', user=user, messages=messages, likes=likes)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -281,6 +286,100 @@ def delete_user():
 
 
 ##############################################################################
+# Likes routes:
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """
+    Show the messages the user has liked.
+    User must be logged in to view another user's likes.
+    """
+    
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    likes = (
+        Likes
+        .query
+        .filter(Likes.user_id == user_id)
+        .all())
+    
+    all_messages = [l.message_id for l in likes]
+    
+    messages = (
+        Message
+        .query
+        .filter(Message.id.in_(all_messages))
+        .order_by(Message.timestamp.desc())
+        .all())
+    
+    return render_template("likes/show.html", messages=messages)
+        
+
+@app.route('/users/add_like/<int:message_id>', methods=["GET", "POST"])
+def add_like(message_id):
+    """
+    Like a message.
+    Users should not be able to like their own messages.
+    Anon users should not be able to like any messages.
+    """
+
+    # prevent anon user from accessing endpoint
+    # prevent g.user from entering endpoint in url
+    if not g.user or request.method == 'GET':
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    # query the message instance
+    msg = Message.query.get(message_id)
+    
+    # check that the liked message is NOT owned by g.user
+    if msg.user_id != g.user.id:
+        
+        # create a new Like instance
+        new_like = Likes(
+            user_id=g.user.id,
+            message_id=message_id
+        )
+
+        # add to session
+        db.session.add(new_like)
+
+        # commit to database
+        db.session.commit()
+    
+    # if liked message DOES match g.user, show flash error
+    else:
+        flash("Access unauthorized.", "danger")
+
+    return redirect("/")
+
+
+@app.route('/users/remove_like/<int:message_id>', methods=["GET", "POST"])
+def remove_like(message_id):
+    """
+    Un-Like a message.
+    Users should not be able to un-like their own messages.
+    Anon users should not be able to un-like any messages.
+    """
+
+    if not g.user or request.method == 'GET':
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    like = Likes.query.filter_by(message_id=message_id).first()
+    
+    if like.user_id == g.user.id:
+        db.session.delete(like)
+    
+        db.session.commit()
+        
+    else:
+        flash("You can't unlike your own post!", "danger")
+
+    return redirect("/")
+
+##############################################################################
 # Messages routes:
 
 @app.route('/messages/new', methods=["GET", "POST"])
@@ -314,9 +413,9 @@ def messages_show(message_id):
 
     if msg:
         return render_template('messages/show.html', message=msg)
-    else:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+
+    flash("Access unauthorized.", "danger")
+    return redirect("/")
 
 
 @app.route('/messages/<int:message_id>/delete', methods=["GET", "POST"])
@@ -354,8 +453,10 @@ def homepage():
     if g.user:
         # create a list of all ids that our user follows
         following = [f.id for f in g.user.following]
+    
         # append our user's id as well into this list
         following.append(g.user.id)
+    
         # query all messages that match the ids in our following list
         messages = (Message
                     .query
@@ -363,8 +464,15 @@ def homepage():
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-        
-        return render_template('home.html', messages=messages)
+    
+        # query all likes of that match our g.user
+        all_likes = Likes.query.filter_by(user_id=g.user.id).all()
+    
+        # put all ids from likes into an arr
+        # we will eventually pass this to jinja
+        likes = [l.message_id for l in all_likes]
+
+        return render_template('home.html', messages=messages, likes=likes)
 
     else:
         return render_template('home-anon.html')
