@@ -90,3 +90,89 @@ class UserModelTestCase(TestCase):
         self.assertIn("user location", test_user.location)
         self.assertIn("bio for the user", test_user.bio)
 
+    def test_user_repr(self):
+        """
+        Test that __repr__ function prints properly.
+        """
+        
+        test_user = User(
+            email="test@test.com",
+            username="testuser",
+            password="HASHED_PASSWORD"
+        )
+        
+        test_repr = f"<User #{test_user.id}: {test_user.username}, {test_user.email}>"
+
+        self.assertEqual(repr(test_user), test_repr)
+        
+    def test_is_followed_by(self):
+        """
+        Test that test_user is followed by followed_user
+        """
+        
+        test_user = User(
+            email="test@test.com",
+            username="testuser",
+            password="HASHED_PASSWORD"
+        )
+        
+        followed_user = User(
+            email="followed@test.com",
+            username="followeduser",
+            password="HASHED_PASSWORD"
+        )
+
+        test_user.followers.append(followed_user)
+        
+        self.assertEqual(test_user.is_followed_by(followed_user), True)
+
+    def test_is_following(self):
+        """
+        Test that test_user is following following_user
+        """
+        
+        test_user = User(
+            email="test@test.com",
+            username="testuser",
+            password="HASHED_PASSWORD"
+        )
+        
+        following_user = User(
+            email="following@test.com",
+            username="followinguser",
+            password="HASHED_PASSWORD"
+        )
+
+        test_user.following.append(following_user)
+        
+        self.assertEqual(test_user.is_following(following_user), True)
+
+    def test_user_signup(self):
+        """
+        Test that User.signup() class method works.
+        """
+        
+        new_user = User.signup('testuser', 'test@test.com', 'HASHED_PASSWORD', '/image.png')
+        
+        self.assertEqual(new_user.username, 'testuser')
+        self.assertEqual(new_user.email, 'test@test.com')
+        self.assertEqual(new_user.image_url, '/image.png')
+
+        self.assertNotEqual(new_user.username, 'testuserasdf')
+        self.assertNotEqual(new_user.email, 'testasdf@test.com')
+        self.assertNotEqual(new_user.image_url, '/asdfimage.png')
+
+    def test_user_authenticate(self):
+        """
+        Test that User.authenticate() class method works.
+        """
+        
+        test_user = User.signup('testuser', 'test@test.com', 'HASHED_PASSWORD', '/image.png')
+
+        new_user = User.authenticate('testuser', 'HASHED_PASSWORD')
+
+        self.assertEqual(new_user.username, test_user.username)
+        self.assertEqual(new_user.password, test_user.password)
+
+        self.assertNotEqual(new_user.password, 'wrong_password')
+        self.assertNotEqual(new_user.username, 'wrong_username')

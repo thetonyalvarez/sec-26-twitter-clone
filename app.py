@@ -95,6 +95,11 @@ def signup():
 @app.route('/login', methods=["GET", "POST"])
 def login():
     """Handle user login."""
+    
+    # if user is already logged in and user visits
+    # login endpoint, redirect to "/"
+    if g.user:
+        return redirect('/')
 
     form = LoginForm()
 
