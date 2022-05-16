@@ -7,7 +7,7 @@
 import os
 from unittest import TestCase
 
-from models import db, connect_db, User, Message, Follows
+from models import db, connect_db, User, Message, Follows, Likes
 
 # Use test database and don't clutter tests with SQL
 os.environ['DATABASE_URL'] = "postgresql:///warbler_test_db"
@@ -800,3 +800,333 @@ class UserViewTestCase(TestCase):
             self.assertIn("danger", html)
             self.assertNotIn("testuser", html)
             self.assertNotIn("followeruser", html)
+
+class LikesTestCase(TestCase):
+    """Test likes for users."""
+
+    def setUp(self):
+        """Create test client, add sample data."""
+
+        User.query.delete()
+        
+        self.client = app.test_client()
+
+        self.testuser = User.signup(username="testuser",
+                                    email="test@test.com",
+                                    password="testuser",
+                                    image_url=None)
+        # A user that follows our test user
+        self.followeruser = User.signup(username="followeruser",
+                                    email="follower@test.com",
+                                    password="followeruser",
+                                    image_url=None)
+        # A user that our test user is following
+        self.followinguser = User.signup(username="followinguser",
+                                    email="following@test.com",
+                                    password="followinguser",
+                                    image_url=None)
+
+        db.session.commit()
+
+    def tearDown(self):
+        """Tear down any session data we added."""
+        
+        db.session.rollback()
+
+    def test_add_like_post(self):
+        """
+        Test that user can like a message.
+        Users should not be able to like their own messages.
+        """
+        
+        # create a test message for our curr user, the user they follow, and a follower
+        following_test_message = Message(
+            text = "testing a new message from a person we follow"
+        )
+        follower_test_message = Message(
+            text = "testing a new message from a person that follows curr user. this should not appear."
+        )
+        curr_test_message = Message(
+            text = "testing our curr users new message"
+        )
+        
+        # append the messages to each user
+        self.followinguser.messages.append(following_test_message)
+        self.followeruser.messages.append(follower_test_message)
+        self.testuser.messages.append(curr_test_message)
+
+        # Add the followinguser to the testuser's list of followers
+        # just so that we can attach this User object to session
+        self.testuser.following.append(self.followinguser)
+        self.followeruser.following.append(self.testuser)
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            followinguser = curr_user.following[0]
+            msg_to_like = followinguser.messages[0]
+            
+            # test that post request works
+            resp = c.post(f'/users/add_like/{msg_to_like.id}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("remove_like", html)
+            
+            # test that post request does NOT work for g.users own message
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            resp = c.post(f'/users/add_like/{curr_user.messages[0].id}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("danger", html)
+
+    def test_add_like_get(self):
+        """
+        Test that user cannot access add_like endpoint as
+        a get request.
+        """
+        
+        # create a test message for our curr user, the user they follow, and a follower
+        following_test_message = Message(
+            text = "testing a new message from a person we follow"
+        )
+        follower_test_message = Message(
+            text = "testing a new message from a person that follows curr user. this should not appear."
+        )
+        curr_test_message = Message(
+            text = "testing our curr users new message"
+        )
+        
+        # append the messages to each user
+        self.followinguser.messages.append(following_test_message)
+        self.followeruser.messages.append(follower_test_message)
+        self.testuser.messages.append(curr_test_message)
+
+        # Add the followinguser to the testuser's list of followers
+        # just so that we can attach this User object to session
+        self.testuser.following.append(self.followinguser)
+        self.followeruser.following.append(self.testuser)
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            followinguser = curr_user.following[0]
+            msg_to_like = followinguser.messages[0]
+
+            # test that GET request does not work
+            resp = c.get(f'/users/add_like/{msg_to_like.id}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("danger", html)
+
+    def test_anon_cannot_add_like_post_or_get(self):
+        """
+        Test that anon user cannot like a message.
+        Anon users should not be able to like any messages.
+        """
+        
+        with self.client as c:
+            
+            # test that anon user cannot add like
+            resp = c.post('/users/add_like/1', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("danger", html)
+            
+            # test that post request does NOT work for g.users own message
+            resp = c.get('/users/add_like/1', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("danger", html)
+
+    def test_remove_like_post(self):
+        """
+        Test that user can like a message.
+        Users should not be able to like their own messages.
+        """
+        
+        # create a test message for our curr user, the user they follow, and a follower
+        following_test_message = Message(
+            text = "testing a new message from a person we follow"
+        )
+        follower_test_message = Message(
+            text = "testing a new message from a person that follows curr user. this should not appear."
+        )
+        curr_test_message = Message(
+            text = "testing our curr users new message"
+        )
+        
+        # append the messages to each user
+        self.followinguser.messages.append(following_test_message)
+        self.followeruser.messages.append(follower_test_message)
+        self.testuser.messages.append(curr_test_message)
+        
+        testuser_liked_msg = Likes(
+            user_id = self.testuser.id,
+            message_id = self.followinguser.messages[0].id
+        )
+        
+        # Add the followinguser to the testuser's list of followers
+        # just so that we can attach this User object to session
+        self.testuser.following.append(self.followinguser)
+        self.followeruser.following.append(self.testuser)
+        db.session.add(testuser_liked_msg)
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            curr_like = Likes.query.first()
+            
+            # import pdb
+            # pdb.set_trace()
+
+            # test that post request works
+            resp = c.post(f'/users/remove_like/{curr_like.message_id}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("add_like", html)
+
+    def test_remove_like_get(self):
+        """
+        Test that user cannot access remove_like endpoint as
+        a get request.
+        """
+        
+        # create a test message for our curr user, the user they follow, and a follower
+        following_test_message = Message(
+            text = "testing a new message from a person we follow"
+        )
+        follower_test_message = Message(
+            text = "testing a new message from a person that follows curr user. this should not appear."
+        )
+        curr_test_message = Message(
+            text = "testing our curr users new message"
+        )
+        
+        testuser_liked_msg = Likes(
+            user_id = self.testuser.id,
+            message_id = following_test_message.id,
+        )
+        
+        # append the messages to each user
+        self.followinguser.messages.append(following_test_message)
+        self.followeruser.messages.append(follower_test_message)
+        self.testuser.messages.append(curr_test_message)
+
+        # Add the followinguser to the testuser's list of followers
+        # just so that we can attach this User object to session
+        self.testuser.following.append(self.followinguser)
+        self.followeruser.following.append(self.testuser)
+        db.session.commit()
+        
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            followinguser = curr_user.following[0]
+            msg_to_like = followinguser.messages[0]
+
+            # test that GET request does not work
+            resp = c.get(f'/users/remove_like/{msg_to_like.id}', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("danger", html)
+
+    def test_anon_cannot_remove_like_post_or_get(self):
+        """
+        Test that user can un-like a message.
+        Anon users should not be able to un-like any messages.
+        """
+        
+        with self.client as c:
+            
+            # test that anon user cannot add like
+            resp = c.post('/users/remove_like/1', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("danger", html)
+            
+            # test that post request does NOT work for g.users own message
+            resp = c.get('/users/remove_like/1', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertIn("danger", html)
+
+    def test_show_likes(self):
+        """
+        Test that user can see all liked messages for any user.
+        User must be logged in to view another user's likes.
+        """
+        
+        # create a test message for our curr user, the user they follow, and a follower
+        following_test_message = Message(
+            text = "testing a new message from a person we follow"
+        )
+        
+        # append the messages to each user
+        self.followinguser.messages.append(following_test_message)
+        
+        # Add the followinguser to the testuser's list of followers
+        # just so that we can attach this User object to session
+        self.testuser.following.append(self.followinguser)
+
+        db.session.commit()
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            curr_user = User.query.get(sess[CURR_USER_KEY])
+            
+            testuser_liked_msg = Likes(
+                user_id = self.testuser.id,
+                message_id = curr_user.following[0].messages[0].id,
+            )
+            
+            db.session.add(testuser_liked_msg)
+            db.session.commit()
+
+            resp = c.get(f'/users/{curr_user.id}/likes', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertIn("testing a new message from a person we follow", html)
+
+    def test_anon_cannot_see_likes(self):
+        """
+        Test that anon user cannot see liked messages for any user.
+        User must be logged in to view another user's likes.
+        """
+
+        # Since we need to change the session to mimic logging in,
+        # we need to use the changing-session trick:
+
+        with self.client as c:
+            
+            resp = c.get('/users/1/likes', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertIn("danger", html)
