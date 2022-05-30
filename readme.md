@@ -8,6 +8,16 @@ Create an account, add a user, edit profile, follow people, and more.
 
 This app uses [Flask Python](https://flask.palletsprojects.com/) as our backend framework, [PostgreSQL](https://www.postgresql.org/) for database storage, and HTML / CSS to render the front-end.
 
+-   [How to Install and Run This Project](#how-to-install-and-run-this-project)
+-   [How to Use This project](#how-to-use-this-project)
+    -   [Sign up for an Account](#sign-up-for-an-account)
+    -   [Profile Page](#profile-page)
+    -   [Follow a Warbler Account](#follow-a-warbler-account)
+    -   [View All Posted Messages](#view-all-posted-messages)
+    -   [Logging Out](#logging-out)
+-   [Running Tests](#running-tests)
+-   [Known Bugs](#known-bugs)
+
 #
 
 ## How to Install and Run This Project
