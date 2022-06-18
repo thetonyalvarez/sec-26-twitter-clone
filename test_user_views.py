@@ -61,6 +61,26 @@ class UserViewTestCase(TestCase):
         """Tear down any session data we added."""
         
         db.session.rollback()
+        
+    def test_do_login(self):
+        """
+        Test that user is logged in.
+        """
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+        
+            resp = c.post('/login', 
+                data={
+                    'username': self.testuser.username,
+                    'password': self.testuser.password,
+                }, follow_redirects=True)
+            
+            self.assertEqual(sess.get('curr_user'), self.testuser.id)
+            self.assertNotEqual(sess.get('curr_user'), 2)
+            
+            html = resp.get_data(as_text=True)
+            self.assertIn(self.testuser.username, html)
 
     def test_logout_redirect(self):
         """
@@ -694,6 +714,26 @@ class UserViewTestCase(TestCase):
             # make sure we don't see follower's messages in our curr user feed
             # since we don't follow them
             self.assertNotIn(curr_user.followers[0].messages[0].text, html)
+            
+    def test_signup_form(self):
+        """
+        Test that a user can sign up
+        """
+        
+        with self.client as c:
+
+            resp = c.post("/signup", 
+                            json={
+                            'username': self.testuser.username,
+                            'password': self.testuser.password,
+                            'email': self.testuser.email,
+                            'image_url': self.testuser.image_url
+                }, follow_redirects=True)
+            
+            html = resp.get_data(as_text=True)
+                    
+            self.assertIn(self.testuser.username, html)
+
 
     def test_show_signup_screen_for_anon_users(self):
         """
