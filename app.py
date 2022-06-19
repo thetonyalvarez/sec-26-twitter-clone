@@ -259,6 +259,7 @@ def profile():
             if form.header_image_url.data:
                 user.header_image_url = form.header_image_url.data
             user.bio = form.bio.data
+            user.location = form.location.data
 
             db.session.commit()
             return redirect(f"/users/{g.user.id}")
