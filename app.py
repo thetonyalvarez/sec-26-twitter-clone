@@ -403,6 +403,7 @@ def messages_add():
 
     if form.validate_on_submit():
         msg = Message(text=form.text.data)
+        user_id = g.user.id
         g.user.messages.append(msg)
         db.session.commit()
 
