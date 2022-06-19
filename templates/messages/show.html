@@ -15,13 +15,11 @@
               <a href="/users/{{ message.user.id }}">@{{ message.user.username }}</a>
               {% if g.user %}
                 {% if g.user.id == message.user.id %}
-                  <form method="POST"
-                        action="/messages/{{ message.id }}/delete">
+                  <form method="POST" action="/messages/{{ message.id }}/delete">
                     <button class="btn btn-outline-danger">Delete</button>
                   </form>
                 {% elif g.user.is_following(message.user) %}
-                  <form method="POST"
-                        action="/users/stop-following/{{ message.user.id }}">
+                  <form method="POST" action="/users/stop-following/{{ message.user.id }}">
                     <button class="btn btn-primary">Unfollow</button>
                   </form>
                 {% else %}
