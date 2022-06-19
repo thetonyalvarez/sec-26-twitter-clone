@@ -46,7 +46,9 @@ To build this project locally:
 ## How to Use This project
 
 A brief video walkthrough of this app:
-<div style="position: relative; padding-bottom: 56.25%; height: 0;"><iframe src="https://www.loom.com/embed/86e5e93906944fd5962e5f6edc98130c" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+[![Watch the video](https://user-images.githubusercontent.com/20695616/174462366-fb45a26f-fb18-4a2b-841f-5c6a41b5f48e.png)](https://user-images.githubusercontent.com/20695616/174462301-f0b4c818-b06c-41bb-8294-b8996f7466b7.mp4)
+
 
 To view this project, run `localhost` on your computer.
 
