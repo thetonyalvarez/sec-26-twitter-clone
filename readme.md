@@ -8,7 +8,7 @@ Create an account, add a user, edit profile, follow people, and more.
 
 This app uses [Flask Python](https://flask.palletsprojects.com/) as our backend framework, [PostgreSQL](https://www.postgresql.org/) for database storage, and HTML / CSS to render the front-end.
 
--   [How to Install and Run This Project](#how-to-install-and-run-this-project)
+-   [How to Install and Run This Project Locally](#how-to-install-and-run-this-project-locally)
 -   [How to Use This project](#how-to-use-this-project)
     -   [Sign up for an Account](#sign-up-for-an-account)
     -   [Profile Page](#profile-page)
@@ -20,26 +20,27 @@ This app uses [Flask Python](https://flask.palletsprojects.com/) as our backend 
 
 #
 
-## How to Install and Run This Project
+## How to Install and Run This Project Locally
 
-To build this project locally:
+Before you install this package, please make sure to start your local database server. This will ensure that the command below creates the proper database.
 
-1. Create a Python virtual environment:
-    ```console
-    $ python3 -m venv venv
-    $ source venv/bin/activate
-    (venv) $ pip install -r requirements.txt
-    ```
-2. Set up your database in `psql` using the provided `seed.py` file:
-    ```console
-    (venv) $ createdb warbler
-    (venv) $ python seed.py
-    ```
-3. Start your SQL server using PostgreSQL.
-4. Then start your flask server.
-    ```console
-    (venv) $ flask run
-    ```
+To build this project locally, copy/paste this command:
+
+```console
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+createdb warbler
+python seed.py
+flask run
+```
+
+This will create a local Python virtual environment, set up your database with the provided `seed.py` file, and start your flask server.
+
+## Deploying this project
+To deploy this project to Github Actions, create a `*.yaml` file with deployment configurations.
+
+You can see how to deploy to Github Actions [here](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions).
 
 #
 
