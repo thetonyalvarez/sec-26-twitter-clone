@@ -6,6 +6,7 @@
 
 import os
 from unittest import TestCase
+from sqlalchemy.exc import IntegrityError
 
 from models import db, connect_db, User, Message, Follows, Likes
 
@@ -723,17 +724,28 @@ class UserViewTestCase(TestCase):
         with self.client as c:
 
             resp = c.post("/signup", 
-                            json={
-                            'username': self.testuser.username,
-                            'password': self.testuser.password,
-                            'email': self.testuser.email,
-                            'image_url': self.testuser.image_url
-                }, follow_redirects=True)
+                json={
+                    'username': self.testuser.username,
+                    'password': self.testuser.password,
+                    'email': self.testuser.email,
+                    'image_url': self.testuser.image_url
+                },
+                follow_redirects=True
+            )
             
             html = resp.get_data(as_text=True)
-                    
             self.assertIn(self.testuser.username, html)
-
+            
+            resp = c.post("/signup", 
+                json={
+                    'username': self.testuser.username,
+                    'password': self.testuser.password,
+                    'email': self.testuser.email,
+                    'image_url': self.testuser.image_url
+            })
+            
+            html = resp.get_data(as_text=True)
+            self.assertIn('User already exists', html)
 
     def test_show_signup_screen_for_anon_users(self):
         """

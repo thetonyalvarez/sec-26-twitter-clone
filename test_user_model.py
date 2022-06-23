@@ -8,6 +8,7 @@ import os
 from unittest import TestCase
 
 from models import db, User, Message, Follows
+from sqlalchemy.exc import IntegrityError
 
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
@@ -161,6 +162,27 @@ class UserModelTestCase(TestCase):
         self.assertNotEqual(new_user.username, 'testuserasdf')
         self.assertNotEqual(new_user.email, 'testasdf@test.com')
         self.assertNotEqual(new_user.image_url, '/asdfimage.png')
+
+    def test_reject_duplicate_username_signups(self):
+        """
+        Test that 2 of the same usernames cannot be created.
+        """
+        
+        User.signup('testuser', 'test@test.com', 'HASHED_PASSWORD', '/image.png')
+        
+        with self.assertRaises(IntegrityError):
+            User.signup('testuser', 'test2@test.com', 'HASHED_PASSWORD', '/image.png')
+
+    def test_reject_duplicate_email_signups(self):
+        """
+        Test that 2 of the same usernames cannot be created.
+        """
+        
+        User.signup('testuser', 'test@test.com', 'HASHED_PASSWORD', '/image.png')
+        
+        with self.assertRaises(IntegrityError):
+            User.signup('testuser2', 'test@test.com', 'HASHED_PASSWORD', '/image.png')
+
 
     def test_user_authenticate(self):
         """
