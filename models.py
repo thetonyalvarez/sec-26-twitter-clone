@@ -4,6 +4,7 @@ from datetime import datetime
 
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
 
 bcrypt = Bcrypt()
 db = SQLAlchemy()
@@ -136,7 +137,6 @@ class User(db.Model):
 
         Hashes password and adds user to system.
         """
-
         hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
 
         user = User(
@@ -168,7 +168,6 @@ class User(db.Model):
                 return user
 
         return False
-
 
 class Message(db.Model):
     """An individual message ("warble")."""
