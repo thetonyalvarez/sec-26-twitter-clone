@@ -114,7 +114,7 @@ There are 4 test files in this application:
 To run tests, run:
 
 ```console
-(venv) $ python -m unittest
+python -m unittest
 ```
 
 This will run a total of 51 tests.
