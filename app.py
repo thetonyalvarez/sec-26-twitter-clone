@@ -36,6 +36,11 @@ toolbar = DebugToolbarExtension(app)
 connect_db(app)
 
 
+# Set IDs to IDs.length so new objects do not throw primary key errors
+db.session.query('SELECT setval("users_id_seq", MAX(id)) FROM users;')
+db.session.query('SELECT setval("messages_id_seq", MAX(id)) FROM messages;')
+db.session.query('SELECT setval("likes_id_seq", MAX(id)) FROM likes;')
+
 ##############################################################################
 # User signup/login/logout
 
