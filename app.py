@@ -1,4 +1,6 @@
 import os
+from os import environ as env
+
 
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
@@ -17,7 +19,7 @@ migrate = Migrate(app, db)
 # Get DB_URI from environ variable (useful for production/testing) or,
 # if not set there, use development local db.
 app.config['SQLALCHEMY_DATABASE_URI'] = (
-    os.environ.get('DATABASE_URL', "postgresql://tonyalva87:'caf2duh_rvt5DKQ*bqd'@tonyalvarez-twitter-clone-webapp-db-1.postgres.database.azure.com:5432/warbler"))
+    os.environ.get('DATABASE_URL', "postgresql://env['DBUSER']:end['DBPASS']@tonyalvarez-twitter-clone-webapp-db-1.postgres.database.azure.com:5432/warbler"))
 # app.config['SQLALCHEMY_DATABASE_URI'] = (
 #     os.environ.get('DATABASE_URL', 'postgresql:///warbler'))
 
