@@ -9,6 +9,7 @@ Create an account, add a user, edit profile, follow people, and more.
 This app uses [Flask Python](https://flask.palletsprojects.com/) as our backend framework, [PostgreSQL](https://www.postgresql.org/) for database storage, and HTML / CSS to render the front-end.
 
 -   [Try This App!](#try-this-app)
+-   [Database Overview](#database-overview)
 -   [How to Install and Run This Project Locally](#how-to-install-and-run-this-project-locally)
 -   [How to Use This project](#how-to-use-this-project)
     -   [Sign up for an Account](#sign-up-for-an-account)
@@ -19,8 +20,11 @@ This app uses [Flask Python](https://flask.palletsprojects.com/) as our backend 
 -   [Running Tests](#running-tests)
 -   [Known Bugs](#known-bugs)
 
-# Try This App!
+## Try This App!
 To try this app, [visit the demo site here](http://tonyalvarez-twitter-clone-webapp-1.azurewebsites.net).
+
+## Database Overview
+![Warbler Database Overview](warbler-db-diag.png)
 
 ## How to Install and Run This Project Locally
 
