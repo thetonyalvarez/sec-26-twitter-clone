@@ -1,6 +1,8 @@
 import os
 from os import environ as env
 from dotenv import load_dotenv
+from flask_moment import Moment
+
 load_dotenv()
 
 envUser = env['DBUSER']
@@ -17,6 +19,8 @@ from models import db, connect_db, User, Message, Likes
 CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
+
+moment = Moment(app)
 
 migrate = Migrate(app, db)
 

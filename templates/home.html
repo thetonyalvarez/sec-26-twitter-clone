@@ -61,12 +61,8 @@
 					/>
 				</a>
 				<div class="message-area">
-					<a href="/users/{{ msg.user.id }}"
-						>@{{ msg.user.username }}</a
-					>
-					<span class="text-muted"
-						>{{ msg.timestamp.strftime('%d %B %Y') }}</span
-					>
+					<a href="/users/{{ msg.user.id }}">@{{ msg.user.username }}</a>
+					<span id="test" class="text-muted">{{ moment(msg.timestamp, local=False).format('MMMM Do YYYY, h:mm a') }}</span>
 					<p>{{ msg.text }}</p>
 				</div>
 				{% if msg.user_id != g.user.id %}

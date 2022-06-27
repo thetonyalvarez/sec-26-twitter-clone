@@ -30,7 +30,8 @@
               {% endif %}
             </div>
             <p class="single-message">{{ message.text }}</p>
-            <span class="text-muted">{{ message.timestamp.strftime('%d %B %Y') }}</span>
+            <!-- <span class="text-muted">{{ message.timestamp.strftime('%d %B %Y') }}</span> -->
+            <span class="text-muted">{{ moment(message.timestamp, local=False).format('MMMM Do YYYY, h:mm a') }}</span>
           </div>
         </li>
       </ul>
